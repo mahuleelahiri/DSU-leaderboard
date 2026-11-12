@@ -1,11 +1,19 @@
 import { Suspense } from "react";
-import ClubAdmin from "./ClubAdmin";
+import { notFound, redirect } from "next/navigation";
+import { findClubIdByCode } from "@/lib/club-data";
 
-async function ClubAdminRouteContent({ params }: { params: Promise<{ code: string }> }) {
+/** Legacy URL: /c/CODE/admin → the club's dashboard (auth enforced there). */
+async function Forward({ params }: PageProps<"/c/[code]/admin">): Promise<never> {
   const { code } = await params;
-  return <ClubAdmin key={code} code={code} />;
+  const clubId = await findClubIdByCode(code);
+  if (!clubId) notFound();
+  return redirect(`/dashboard/${clubId}`);
 }
 
-export default function ClubAdminRoute({ params }: { params: Promise<{ code: string }> }) {
-  return <Suspense fallback={<div className="club-loading">Checking admin access…</div>}><ClubAdminRouteContent params={params} /></Suspense>;
+export default function LegacyClubAdmin(props: PageProps<"/c/[code]/admin">) {
+  return (
+    <Suspense>
+      <Forward {...props} />
+    </Suspense>
+  );
 }

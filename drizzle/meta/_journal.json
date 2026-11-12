@@ -8,6 +8,20 @@
       "when": 1791913066591,
       "tag": "0000_glossy_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794480079451,
+      "tag": "0001_production_hardening",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794487306529,
+      "tag": "0002_lookup_indexes",
+      "breakpoints": true
     }
   ]
 }
