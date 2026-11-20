@@ -6,12 +6,23 @@ import { ArrowLeft, ArrowRight, Mail, ShieldCheck } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/buttons";
 
-function friendlyError(message: string | undefined, status?: number) {
-  const lower = (message ?? "").toLowerCase();
-  if (status === 429 || lower.includes("too many")) return "Too many attempts. Please wait a minute and try again.";
+type AuthError = { message?: string; status?: number; code?: string };
+
+/**
+ * Maps Better Auth errors to plain language. Matches on the stable error code
+ * (not message substrings) so a failure while *sending* a code is never shown
+ * as "wrong code".
+ */
+function friendlyError(err: AuthError) {
+  const { code, status, message } = err;
+  if (status === 429) return "Too many attempts. Please wait a minute and try again.";
   if (status && status >= 500) return "Sign-in is unavailable right now because the server hit an error (often the database is unreachable). Please try again shortly; if you run this app, check the server log.";
-  if (lower.includes("expired")) return "That code has expired. Request a new one.";
-  if (lower.includes("invalid") || lower.includes("otp")) return "That code isn't right. Check the email and try again.";
+  if (code === "TOO_MANY_ATTEMPTS") return "Too many wrong codes. Request a new code and try again.";
+  if (code === "OTP_EXPIRED") return "That code has expired. Request a new one.";
+  // Uninvited addresses are never sent a code (so accounts can't be probed),
+  // which makes any code they enter "invalid": say so instead of blaming the code.
+  if (code === "INVALID_OTP") return "That code isn't right, or this address hasn't been invited. Check the code, or go back and use the exact email your club added.";
+  if (code === "INVALID_EMAIL") return "Enter a valid email address.";
   return message || "Something went wrong. Please try again.";
 }
 
@@ -41,7 +52,7 @@ export function SignInForm({ next }: { next: string }) {
     setBusy(true);
     const { error: err } = await authClient.emailOtp.sendVerificationOtp({ email: address, type: "sign-in" });
     setBusy(false);
-    if (err) return setError(friendlyError(err.message, err.status));
+    if (err) return setError(friendlyError(err));
     setStep("code");
     setOtp("");
     setCooldown(RESEND_SECONDS);
@@ -55,7 +66,7 @@ export function SignInForm({ next }: { next: string }) {
     if (err) {
       setBusy(false);
       setOtp("");
-      return setError(friendlyError(err.message, err.status));
+      return setError(friendlyError(err));
     }
     router.replace(next);
     router.refresh();
