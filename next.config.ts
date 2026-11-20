@@ -35,6 +35,7 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,
+  devIndicators: false,
   experimental: {
     // Policy for `next upgrade --agent` and upgrade reminders in dev/build.
     agentUpgrade: "security",
