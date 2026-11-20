@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { siteUrlOrDefault } from "@/lib/site-url";
 import { ToastProvider } from "@/components/ui/Toaster";
 import { themeScript } from "@/components/ui/ThemeToggle";
 import "./globals.css";
@@ -8,7 +9,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+  metadataBase: siteUrlOrDefault(process.env.NEXT_PUBLIC_APP_URL),
   title: { default: "Clubhouse — Leaderboards for student clubs", template: "%s · Clubhouse" },
   description: "Run seasons, award marks and celebrate your members with live, shareable club leaderboards.",
   applicationName: "Clubhouse",
