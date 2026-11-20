@@ -90,12 +90,7 @@ Admins can use **any** address: college, Gmail, Outlook, iCloud and so on. Invit
 - The old address gets a security notice, and the change is audited.
 - An address that already belongs to another account is never sent a code.
 
-> **Email delivery:** two providers are supported.
->
-> - **Gmail (no domain needed):** turn on 2-Step Verification for a Gmail account, create an [App Password](https://myaccount.google.com/apppasswords), and set `GMAIL_USER` and `GMAIL_APP_PASSWORD`. Emails come from that Gmail address (shown as `EMAIL_FROM_NAME`) and reach any inbox. Gmail allows about 500 recipients a day.
-> - **Resend:** its test mode only delivers to the email you signed up with. For codes to reach other inboxes, [verify a domain in Resend](https://resend.com/domains) and set `RESEND_FROM_EMAIL` to an address on it, e.g. `Clubhouse <no-reply@yourdomain.com>`.
->
-> If both are set, Gmail is used. If sending fails, the server log shows `email.send_failed` with a hint explaining the fix.
+> **Email delivery:** Resend's test mode only delivers to the email you signed up to Resend with. For codes to reach other people's personal inboxes, [verify a domain in Resend](https://resend.com/domains) and set `RESEND_FROM_EMAIL` to an address on it, e.g. `Clubhouse <no-reply@yourdomain.com>`. If this is misconfigured, the server log shows `email.send_failed` with a hint explaining the fix.
 
 ### Environment variables
 
@@ -105,11 +100,8 @@ Admins can use **any** address: college, Gmail, Outlook, iCloud and so on. Invit
 | `BETTER_AUTH_SECRET` | yes | ≥ 32 chars in production: `openssl rand -base64 32` |
 | `BETTER_AUTH_URL` | yes | Public URL of the deployment |
 | `NEXT_PUBLIC_APP_URL` | recommended | Used for links in emails |
-| `GMAIL_USER` | production (or Resend) | Gmail address that sends sign-in codes |
-| `GMAIL_APP_PASSWORD` | production (or Resend) | Google App Password, not the account password |
-| `EMAIL_FROM_NAME` | no | Sender display name (default `Clubhouse`) |
-| `RESEND_API_KEY` | production (or Gmail) | Optional locally |
-| `RESEND_FROM_EMAIL` | with Resend | A sender on a domain verified in Resend |
+| `RESEND_API_KEY` | production | Optional locally |
+| `RESEND_FROM_EMAIL` | production | A sender on a domain verified in Resend |
 | `DATABASE_POOL_MAX` | no | Connections per instance (default 10) |
 
 ## Scripts
