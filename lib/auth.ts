@@ -39,6 +39,23 @@ async function onUserUpdated(user: { id: string; email: string }, previousEmail:
   }
 }
 
+/**
+ * The origin the request was actually sent to (as the browser saw it), so a
+ * sign-in from the page's own address is always accepted: the live domain,
+ * a Vercel preview URL, 127.0.0.1 or the LAN address in development.
+ *
+ * Still CSRF-safe: a cross-site page can't make the browser send a different
+ * Host, and can't add X-Forwarded-* headers without a CORS preflight that
+ * fails, so its Origin never matches.
+ */
+function requestOrigin(request?: Request) {
+  if (!request) return null;
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  if (!host) return null;
+  const proto = request.headers.get("x-forwarded-proto")?.split(",")[0].trim() ?? new URL(request.url).protocol.replace(":", "");
+  return `${proto}://${host.split(",")[0].trim()}`;
+}
+
 function createAuth() {
   const e = env();
   const origins = [e.BETTER_AUTH_URL, e.NEXT_PUBLIC_APP_URL].filter((value): value is string => Boolean(value));
@@ -48,7 +65,7 @@ function createAuth() {
     database: drizzleAdapter(db, { provider: "pg", schema }),
     secret: e.BETTER_AUTH_SECRET,
     baseURL: e.BETTER_AUTH_URL,
-    trustedOrigins: origins,
+    trustedOrigins: (request) => [...origins, requestOrigin(request)],
     session: {
       expiresIn: 60 * 60 * 24 * 14, // 14 days
       updateAge: 60 * 60 * 24, // refresh expiry daily on activity

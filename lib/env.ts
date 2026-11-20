@@ -10,7 +10,10 @@ const schema = z.object({
   BETTER_AUTH_SECRET: z
     .string()
     .min(process.env.NODE_ENV === "production" ? 32 : 1, "BETTER_AUTH_SECRET must be at least 32 characters (openssl rand -base64 32)"),
-  BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
+  // On Vercel, defaults to the project's production domain when not set.
+  BETTER_AUTH_URL: z
+    .url()
+    .default(process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000"),
   NEXT_PUBLIC_APP_URL: z.url().optional(),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().default("Clubhouse <no-reply@localhost>"),
