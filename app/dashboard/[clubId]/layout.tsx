@@ -4,7 +4,6 @@ import { ExternalLink } from "lucide-react";
 import { countPendingRequests } from "@/lib/admin-data";
 import { requireClubPage } from "@/lib/dal";
 import { SideNav, type NavItem } from "@/components/dashboard/nav";
-import { PageSkeleton } from "@/components/dashboard/PageSkeleton";
 
 async function ClubSidebar({ params }: { params: LayoutProps<"/dashboard/[clubId]">["params"] }) {
   const { clubId } = await params;
@@ -45,9 +44,8 @@ export default function ClubLayout({ children, params }: LayoutProps<"/dashboard
           <ClubSidebar params={params} />
         </Suspense>
       </aside>
-      <main className="min-w-0 flex-1">
-        <Suspense fallback={<PageSkeleton />}>{children}</Suspense>
-      </main>
+      {/* Pages stream behind ./loading.tsx, which also covers navigations between club pages. */}
+      <main className="min-w-0 flex-1">{children}</main>
     </div>
   );
 }
