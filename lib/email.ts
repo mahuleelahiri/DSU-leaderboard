@@ -1,4 +1,5 @@
 import "server-only";
+import nodemailer, { type Transporter } from "nodemailer";
 import { Resend } from "resend";
 import { env, isProduction } from "@/lib/env";
 import { logger } from "@/lib/logger";
@@ -28,16 +29,50 @@ function render({ heading, body, cta }: Email) {
 </body></html>`;
 }
 
+let gmail: { key: string; transport: Transporter } | null = null;
+
+async function sendWithGmail(email: Email, user: string, pass: string, fromName: string) {
+  const key = `${user}|${pass}`;
+  if (gmail?.key !== key) {
+    gmail = { key, transport: nodemailer.createTransport({ service: "gmail", auth: { user, pass } }) };
+  }
+  try {
+    await gmail.transport.sendMail({
+      // Gmail rewrites any other From address to the account itself, so always send as it.
+      from: { name: fromName, address: user },
+      to: email.to,
+      subject: email.subject,
+      html: render(email),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("email.send_failed", {
+      provider: "gmail",
+      subject: email.subject,
+      error: message,
+      hint: /535|Username and Password not accepted|BadCredentials/i.test(message)
+        ? "Gmail rejected the login: GMAIL_APP_PASSWORD must be a Google App Password (myaccount.google.com/apppasswords, needs 2-Step Verification), not your normal password."
+        : undefined,
+    });
+    throw new Error("We couldn't send the email. Please try again shortly.");
+  }
+}
+
 /**
- * Sends a transactional email. Without RESEND_API_KEY (local development) the
+ * Sends a transactional email through Gmail (GMAIL_USER + GMAIL_APP_PASSWORD)
+ * or Resend (RESEND_API_KEY). With neither configured (local development) the
  * message is printed to the server console instead, so the whole sign-in flow
  * works offline.
  */
 export async function sendEmail(email: Email) {
-  const { RESEND_API_KEY, RESEND_FROM_EMAIL } = env();
+  const { RESEND_API_KEY, RESEND_FROM_EMAIL, GMAIL_USER, GMAIL_APP_PASSWORD, EMAIL_FROM_NAME } = env();
+
+  if (GMAIL_USER && GMAIL_APP_PASSWORD) return sendWithGmail(email, GMAIL_USER, GMAIL_APP_PASSWORD, EMAIL_FROM_NAME);
 
   if (!RESEND_API_KEY) {
-    if (isProduction) throw new Error("RESEND_API_KEY is required to send email in production.");
+    if (isProduction) {
+      throw new Error("Email is not configured: set GMAIL_USER and GMAIL_APP_PASSWORD (or RESEND_API_KEY) to send email in production.");
+    }
     logger.info("email.dev_outbox", { to: email.to, subject: email.subject, text: email.body.replace(/<[^>]+>/g, " ") });
     return;
   }

@@ -14,6 +14,16 @@ const schema = z.object({
   NEXT_PUBLIC_APP_URL: z.url().optional(),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().default("Clubhouse <no-reply@localhost>"),
+  /**
+   * Gmail sending (no custom domain needed): a Gmail address plus a Google
+   * App Password. Takes precedence over Resend when both are set.
+   */
+  GMAIL_USER: z.preprocess((value) => (value === "" ? undefined : value), z.email().optional()),
+  GMAIL_APP_PASSWORD: z
+    .string()
+    .transform((value) => value.replace(/\s+/g, "")) // Google displays it in groups of four
+    .optional(),
+  EMAIL_FROM_NAME: z.string().default("Clubhouse"),
 });
 
 export type Env = z.infer<typeof schema>;
