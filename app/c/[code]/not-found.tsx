@@ -11,7 +11,7 @@ export default function ClubNotFound() {
           <KeyRound size={24} />
         </span>
         <h1 className="mt-6 text-2xl font-semibold tracking-tight">That code doesn’t open a club</h1>
-        <p className="mt-2 text-muted">Double-check the code with your club admin. Club presidents can rotate codes, so an old link may have stopped working.</p>
+        <p className="mt-2 text-muted">Double-check the code with your club admin. Club heads can rotate codes, so an old link may have stopped working.</p>
         <Link href="/" className="btn btn-primary mt-8">
           Try another code
         </Link>

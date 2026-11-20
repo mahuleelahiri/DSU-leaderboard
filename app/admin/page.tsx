@@ -10,7 +10,7 @@ import { CreateClubButton, DeleteClubButton } from "./PlatformForms";
 export default function PlatformHome() {
   return (
     <>
-      <PageHeader title="Clubs" description="Every club on the platform. Open one to manage it with president rights." actions={<CreateClubButton />} />
+      <PageHeader title="Clubs" description="Every club on the platform. Open one to manage it with head rights." actions={<CreateClubButton />} />
       <Suspense fallback={<PlatformOverviewSkeleton />}>
         <PlatformOverview />
       </Suspense>
@@ -47,7 +47,7 @@ async function PlatformOverview() {
       <section className="card mt-6 overflow-hidden">
         {clubs.length === 0 ? (
           <EmptyState icon={Building2} title="No clubs yet" action={<CreateClubButton />}>
-            Create the first club and assign a president by email.
+            Create the first club and assign a head by email.
           </EmptyState>
         ) : (
           <div className="overflow-x-auto">
@@ -58,7 +58,7 @@ async function PlatformOverview() {
                   <th>Code</th>
                   <th className="text-right">Members</th>
                   <th className="hidden text-right md:table-cell">Awards</th>
-                  <th className="hidden lg:table-cell">Presidents</th>
+                  <th className="hidden lg:table-cell">Heads</th>
                   <th className="hidden sm:table-cell">Last activity</th>
                   <th className="w-24" />
                 </tr>
@@ -78,7 +78,7 @@ async function PlatformOverview() {
                     </td>
                     <td className="tabular text-right">{c.memberCount}</td>
                     <td className="tabular hidden text-right md:table-cell">{formatNumber(c.entryCount)}</td>
-                    <td className="hidden max-w-56 truncate text-xs text-muted lg:table-cell">{c.presidents ?? <span className="text-warn">No president</span>}</td>
+                    <td className="hidden max-w-56 truncate text-xs text-muted lg:table-cell">{c.heads ?? <span className="text-warn">No head</span>}</td>
                     <td className="hidden text-xs text-muted sm:table-cell">{c.lastActivity ? timeAgo(c.lastActivity) : "—"}</td>
                     <td>
                       <div className="flex justify-end gap-1">
@@ -96,7 +96,7 @@ async function PlatformOverview() {
         )}
       </section>
       <p className="mt-4 flex items-center gap-1.5 text-xs text-muted">
-        <Award size={12} /> <Inbox size={12} /> Tip: assign a president when creating a club — they’ll receive an email with their sign-in details.
+        <Award size={12} /> <Inbox size={12} /> Tip: assign a head when creating a club — they’ll receive an email with their sign-in details.
       </p>
     </>
   );

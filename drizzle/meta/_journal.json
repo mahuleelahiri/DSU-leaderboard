@@ -29,6 +29,13 @@
       "when": 1795179882406,
       "tag": "0003_rename_admin_roles",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795180153983,
+      "tag": "0004_rename_president_to_head",
+      "breakpoints": true
     }
   ]
 }

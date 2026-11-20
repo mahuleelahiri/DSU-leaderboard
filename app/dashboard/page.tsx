@@ -22,7 +22,7 @@ async function ClubList({ searchParams }: PageProps<"/dashboard">) {
       <PageHeader
         eyebrow={`Welcome back, ${viewer.name.split(" ")[0]}`}
         title="Your clubs"
-        description={viewer.isSuperAdmin ? "As a platform admin you can open any club." : "Clubs where you are the president or a team member."}
+        description={viewer.isSuperAdmin ? "As a platform admin you can open any club." : "Clubs where you are the head or a team member."}
         actions={
           viewer.isSuperAdmin && (
             <Link href="/admin" className="btn btn-secondary">
@@ -36,7 +36,7 @@ async function ClubList({ searchParams }: PageProps<"/dashboard">) {
       {clubs.length === 0 ? (
         <div className="card">
           <EmptyState icon={Building2} title="No clubs yet">
-            {viewer.isSuperAdmin ? "Create the first club from the platform admin area." : "When a club president adds your email to their team, the club will appear here."}
+            {viewer.isSuperAdmin ? "Create the first club from the platform admin area." : "When a club head adds your email to their team, the club will appear here."}
           </EmptyState>
         </div>
       ) : (
@@ -46,7 +46,7 @@ async function ClubList({ searchParams }: PageProps<"/dashboard">) {
               <Link href={`/dashboard/${club.id}`} className="card group flex h-full flex-col p-5 transition-all hover:-translate-y-0.5 hover:shadow-card">
                 <div className="flex items-start justify-between gap-3">
                   <span className="grid size-10 place-items-center rounded-xl bg-brand-soft text-lg font-semibold text-brand-soft-ink">{club.name.charAt(0).toUpperCase()}</span>
-                  <span className={club.role === "president" ? "badge badge-brand" : club.role ? "badge" : "badge badge-warn"}>{club.role ?? "platform"}</span>
+                  <span className={club.role === "head" ? "badge badge-brand" : club.role ? "badge" : "badge badge-warn"}>{club.role ?? "platform"}</span>
                 </div>
                 <h2 className="mt-4 font-semibold tracking-tight">{club.name}</h2>
                 {club.description && <p className="mt-1 line-clamp-2 text-sm text-muted">{club.description}</p>}

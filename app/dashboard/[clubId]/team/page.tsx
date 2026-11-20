@@ -12,11 +12,11 @@ export default async function TeamPage({ params }: PageProps<"/dashboard/[clubId
   const admins = await listClubAdmins(clubId);
   return (
     <>
-      <PageHeader title="Team" description="Presidents manage everything, including settings and the team. Team members can award marks and manage members, domains and requests." />
+      <PageHeader title="Team" description="Heads manage everything, including settings and the team. Team members can award marks and manage members, domains and requests." />
       <TeamManager
         clubId={clubId}
         viewerId={access.viewer.id}
-        canManage={hasRole(access, "president")}
+        canManage={hasRole(access, "head")}
         admins={admins.map((a) => ({ ...a, createdAt: a.createdAt.toISOString(), lastSeen: a.lastSeen ? new Date(a.lastSeen).toISOString() : null }))}
       />
     </>

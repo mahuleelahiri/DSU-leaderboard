@@ -52,10 +52,10 @@ export function CreateClubButton() {
             </select>
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="President email (optional)" htmlFor="cc-owner">
-              <input id="cc-owner" name="ownerEmail" type="email" className="input" placeholder="president@gmail.com" />
+            <Field label="Head email (optional)" htmlFor="cc-owner">
+              <input id="cc-owner" name="ownerEmail" type="email" className="input" placeholder="head@gmail.com" />
             </Field>
-            <Field label="President name" htmlFor="cc-owner-name">
+            <Field label="Head name" htmlFor="cc-owner-name">
               <input id="cc-owner-name" name="ownerName" className="input" maxLength={80} />
             </Field>
           </div>

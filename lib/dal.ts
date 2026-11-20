@@ -83,7 +83,7 @@ export async function requireSuperAdminPage() {
   return viewer;
 }
 
-const ROLE_WEIGHT: Record<AdminRole, number> = { member: 1, president: 2 };
+const ROLE_WEIGHT: Record<AdminRole, number> = { member: 1, head: 2 };
 
 export type ClubAccess = {
   viewer: Viewer;
@@ -101,7 +101,7 @@ function resolveAccess(
 ): ClubAccess | null {
   if (!row) return null;
   if (row.role) return { viewer, club: row.club, role: row.role, viaPlatform: false, adminName: row.adminName };
-  if (viewer.isSuperAdmin) return { viewer, club: row.club, role: "president", viaPlatform: true, adminName: null };
+  if (viewer.isSuperAdmin) return { viewer, club: row.club, role: "head", viaPlatform: true, adminName: null };
   return null;
 }
 
@@ -122,7 +122,7 @@ export async function requireClubPage(clubId: string, minimum: AdminRole = "memb
   await requireViewer(`/dashboard/${clubId}`);
   const access = await getClubAccess(clubId);
   if (!access) redirect("/dashboard?denied=club");
-  if (!hasRole(access, minimum)) redirect(`/dashboard/${clubId}?denied=president`);
+  if (!hasRole(access, minimum)) redirect(`/dashboard/${clubId}?denied=head`);
   return access;
 }
 
@@ -144,7 +144,7 @@ export async function assertClubAccess(clubId: string, minimum: AdminRole = "mem
     .limit(1);
   const access = resolveAccess(toViewer(user, Boolean(row?.isSuperAdmin)), row ?? null);
   if (!access) throw new AuthorizationError("You don't manage this club.");
-  if (!hasRole(access, minimum)) throw new AuthorizationError("Only the club president can do that.");
+  if (!hasRole(access, minimum)) throw new AuthorizationError("Only the club head can do that.");
   return access;
 }
 

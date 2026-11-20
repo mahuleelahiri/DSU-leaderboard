@@ -11,7 +11,7 @@ export default async function PlatformAdminsPage() {
   const admins = await listSuperAdmins();
   return (
     <>
-      <PageHeader title="Platform admins" description="Platform admins can create and delete clubs and act as president of any club. Keep this list short." />
+      <PageHeader title="Platform admins" description="Platform admins can create and delete clubs and act as head of any club. Keep this list short." />
       <SuperAdminManager viewerId={viewer.id} admins={admins.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))} />
     </>
   );

@@ -40,7 +40,7 @@ export async function createClub(input: z.input<typeof createClubSchema>) {
           let credentials: Credentials | null = null;
           if (ownerEmail) {
             ({ userId: ownerId, credentials } = await provisionAdminUser(tx, ownerEmail, ownerName));
-            await tx.insert(admins).values({ clubId: created.id, userId: ownerId, email: ownerEmail, name: ownerName, role: "president" });
+            await tx.insert(admins).values({ clubId: created.id, userId: ownerId, email: ownerEmail, name: ownerName, role: "head" });
           }
           await audit({ actor: viewer, clubId: created.id, action: "club.create", summary: `Created club ${created.name}${ownerEmail ? ` with owner ${ownerEmail}` : ""}` }, tx);
           return { ...created, ownerId, credentials };
@@ -51,9 +51,9 @@ export async function createClub(input: z.input<typeof createClubSchema>) {
             try {
               await sendEmail({
                 to: ownerEmail,
-                subject: `You're the president of ${club.name} on Clubhouse`,
+                subject: `You're the head of ${club.name} on Clubhouse`,
                 heading: `${club.name} is ready`,
-                body: `<p>You've been made the president of <strong>${escapeHtml(club.name)}</strong>. Add members, award marks and share the board with access code <strong>${club.accessCode}</strong>.</p>${signInInstructions(club.credentials)}`,
+                body: `<p>You've been made the head of <strong>${escapeHtml(club.name)}</strong>. Add members, award marks and share the board with access code <strong>${club.accessCode}</strong>.</p>${signInInstructions(club.credentials)}`,
                 cta: { label: "Open your dashboard", href: `${appUrl()}/sign-in?next=/dashboard/${club.id}` },
               });
             } catch (error) {

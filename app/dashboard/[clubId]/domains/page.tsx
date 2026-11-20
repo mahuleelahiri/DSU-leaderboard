@@ -13,7 +13,7 @@ export default async function DomainsPage({ params }: PageProps<"/dashboard/[clu
   return (
     <>
       <PageHeader title="Domains" description="Groups within your club. Each domain gets its own ranking on the public board." />
-      <DomainsManager clubId={clubId} canDelete={hasRole(access, "president")} domains={domains.map((d) => ({ id: d.id, name: d.name, memberCount: d.memberCount, totalMembers: d.totalMembers, pendingRequests: d.pendingRequests }))} />
+      <DomainsManager clubId={clubId} canDelete={hasRole(access, "head")} domains={domains.map((d) => ({ id: d.id, name: d.name, memberCount: d.memberCount, totalMembers: d.totalMembers, pendingRequests: d.pendingRequests }))} />
     </>
   );
 }

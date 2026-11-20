@@ -51,7 +51,7 @@ async function main() {
       const [existing] = await tx.select().from(schema.user).where(eq(sql`lower(${schema.user.email})`, ownerEmail));
       const user = existing ?? (await tx.insert(schema.user).values({ email: ownerEmail, name: ownerEmail.split("@")[0] }).returning())[0];
       ownerId = user.id;
-      await tx.insert(schema.admins).values({ clubId: club.id, userId: user.id, email: ownerEmail, name: user.name, role: "president" });
+      await tx.insert(schema.admins).values({ clubId: club.id, userId: user.id, email: ownerEmail, name: user.name, role: "head" });
     }
 
     const entries: (typeof schema.markEntries.$inferInsert)[] = [];

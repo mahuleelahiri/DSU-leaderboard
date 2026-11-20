@@ -407,7 +407,7 @@ export async function getPlatformOverview() {
         adminCount: sql<number>`(select count(*)::int from ${admins} where ${admins.clubId} = ${clubs.id})`,
         entryCount: sql<number>`(select count(*)::int from ${markEntries} where ${markEntries.clubId} = ${clubs.id})`,
         lastActivity: sql<string | null>`(select max(${markEntries.createdAt}) from ${markEntries} where ${markEntries.clubId} = ${clubs.id})`,
-        presidents: sql<string | null>`(select string_agg(${admins.email}, ', ') from ${admins} where ${admins.clubId} = ${clubs.id} and ${admins.role} = 'president')`,
+        heads: sql<string | null>`(select string_agg(${admins.email}, ', ') from ${admins} where ${admins.clubId} = ${clubs.id} and ${admins.role} = 'head')`,
       })
       .from(clubs)
       .orderBy(asc(clubs.name)),

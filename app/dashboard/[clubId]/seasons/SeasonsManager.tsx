@@ -22,7 +22,7 @@ export function SeasonsManager({ clubId, seasons, canManage }: { clubId: string;
           </button>
         </div>
       ) : (
-        <p className="mb-4 rounded-xl bg-surface-2 px-4 py-3 text-sm text-muted">Only the club president can create or change seasons.</p>
+        <p className="mb-4 rounded-xl bg-surface-2 px-4 py-3 text-sm text-muted">Only the club head can create or change seasons.</p>
       )}
       {seasons.length === 0 ? (
         <div className="card">

@@ -16,7 +16,7 @@ export default async function MembersPage({ params }: PageProps<"/dashboard/[clu
       <PageHeader title="Members" description={`${members.filter((m) => m.active).length} active · ${members.filter((m) => !m.active).length} inactive. Inactive members are hidden from the public board but keep their history.`} />
       <MembersManager
         clubId={clubId}
-        canDelete={hasRole(access, "president")}
+        canDelete={hasRole(access, "head")}
         domains={domains.map((d) => ({ id: d.id, name: d.name }))}
         members={members.map((m) => ({ ...m, joinedDate: m.joinedDate.toISOString() }))}
       />

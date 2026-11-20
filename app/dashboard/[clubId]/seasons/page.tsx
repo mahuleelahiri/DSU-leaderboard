@@ -16,7 +16,7 @@ export default async function SeasonsPage({ params }: PageProps<"/dashboard/[clu
       <PageHeader title="Seasons" description="Marks are tallied per season. Switching the current season starts a fresh leaderboard while keeping history browsable." />
       <SeasonsManager
         clubId={clubId}
-        canManage={hasRole(access, "president")}
+        canManage={hasRole(access, "head")}
         seasons={seasons.map((s) => ({ ...s, startDate: toDateInput(s.startDate), endDate: toDateInput(s.endDate) }))}
       />
     </>

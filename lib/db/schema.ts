@@ -23,7 +23,7 @@ const updatedAt = () =>
     .$onUpdate(() => new Date());
 
 export const joinRequestStatus = pgEnum("join_request_status", ["pending", "approved", "rejected"]);
-export const adminRole = pgEnum("admin_role", ["president", "member"]);
+export const adminRole = pgEnum("admin_role", ["head", "member"]);
 
 /* -------------------------------------------------------------------------- */
 /*                               Better Auth core                             */

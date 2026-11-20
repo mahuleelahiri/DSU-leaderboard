@@ -22,12 +22,12 @@ Built with Next.js 16 (App Router, Cache Components, Server Actions), React 19, 
 - Searchable, paginated activity log with inline edit/delete
 - Members: add, edit, deactivate, delete, **bulk import** from a pasted spreadsheet
 - Domains, seasons (one current season enforced by the database), join-request review
-- Team management with **president / member** roles and email invites (any address: college or personal)
+- Team management with **head / member** roles and email invites (any address: college or personal)
 - Account page: change display name, change password, or switch sign-in email (confirmed with a code sent to the new address)
 - Settings: club profile, access-code rotation, CSV exports, club activity log
 
 **Platform admin** (`/admin`)
-- Create clubs from domain templates with a president invite; delete with typed confirmation
+- Create clubs from domain templates with a head invite; delete with typed confirmation
 - Manage platform admins; platform-wide audit log
 
 ## Architecture
@@ -58,8 +58,8 @@ tests/             Unit tests (vitest)
 
 ### Security model
 - **Defense in depth:** `proxy.ts` redirects signed-out visitors, but every page *and* every Server Action re-checks the session and role through `lib/dal.ts`. A forged cookie that slips past the proxy is still rejected.
-- **Roles:** platform admin → club president → club team member. Presidents manage settings, seasons, the team and destructive actions; team members handle day-to-day marks and members. (Stored as the `admin_role` enum values `president` / `member`; migration `0003` renamed them from `owner` / `editor`.)
-- **Invite-only auth:** admins sign in with email + password; there is no public sign-up. Adding an admin (club president, team member or platform admin) generates a random password, emails it to them and shows it once to the inviter. Wrong passwords and unknown emails get the same error, password-reset requests get the same response either way (so accounts can't be enumerated), and sign-in and reset attempts are rate-limited in Postgres. Passwords are hashed with scrypt. Club members never sign in: they use the club code.
+- **Roles:** platform admin → club head → club team member. Heads manage settings, seasons, the team and destructive actions; team members handle day-to-day marks and members. (Stored as the `admin_role` enum values `head` / `member`; migrations `0003` and `0004` renamed them from `owner` / `editor`.)
+- **Invite-only auth:** admins sign in with email + password; there is no public sign-up. Adding an admin (club head, team member or platform admin) generates a random password, emails it to them and shows it once to the inviter. Wrong passwords and unknown emails get the same error, password-reset requests get the same response either way (so accounts can't be enumerated), and sign-in and reset attempts are rate-limited in Postgres. Passwords are hashed with scrypt. Club members never sign in: they use the club code.
 - **Integrity in the database:** unique case-insensitive names per club, one current season per club (partial unique index), check constraints on codes, dates and marks, transactional multi-row writes with row locks for reviews.
 - **Hardening:** strict security headers and CSP, open-redirect protection, CSV formula-injection escaping, no internal error messages sent to clients, access codes from a CSPRNG with an unambiguous alphabet.
 
@@ -129,4 +129,4 @@ CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests and a production bui
 
 ## Upgrading an existing database
 
-Migration `0001_production_hardening` is additive: it adds roles, the audit log, rate-limit tables, indexes and constraints. Existing club admins become **owners** (now called presidents) so nobody loses access, and historical entries get the awarding admin's name. The new unique indexes will fail to apply if a club already has two domains or two members whose names differ only by case or spacing, so check for those first.
+Migration `0001_production_hardening` is additive: it adds roles, the audit log, rate-limit tables, indexes and constraints. Existing club admins become **owners** (now called heads) so nobody loses access, and historical entries get the awarding admin's name. The new unique indexes will fail to apply if a club already has two domains or two members whose names differ only by case or spacing, so check for those first.
