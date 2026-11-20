@@ -62,9 +62,9 @@ export async function sendEmail(email: Email) {
   }
 }
 
-export function otpEmailBody(otp: string, purpose: "sign-in" | "change-email" = "sign-in") {
-  const intro = purpose === "change-email" ? "Enter this code to make this address your Clubhouse sign-in email." : "Use this code to sign in.";
-  return `<p>${intro} It expires in 5 minutes.</p>
+/** Body of the code that confirms a change of sign-in email. */
+export function otpEmailBody(otp: string) {
+  return `<p>Enter this code to make this address your Clubhouse sign-in email. It expires in 5 minutes.</p>
   <p style="font-size:32px;font-weight:700;letter-spacing:8px;margin:20px 0;font-family:ui-monospace,Menlo,monospace">${escapeHtml(otp)}</p>
   <p style="color:#6b7280;font-size:13px">If you didn't request this, you can safely ignore this email.</p>`;
 }

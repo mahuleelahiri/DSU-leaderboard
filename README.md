@@ -2,7 +2,7 @@
 
 **Live, shareable leaderboards for student clubs.** Admins award marks for participation, members see exactly where they stand, and every change is audited.
 
-Built with Next.js 16 (App Router, Cache Components, Server Actions), React 19, Drizzle ORM on Postgres (Neon), Better Auth (passwordless email OTP), Resend and Tailwind CSS v4.
+Built with Next.js 16 (App Router, Cache Components, Server Actions), React 19, Drizzle ORM on Postgres (Neon), Better Auth (email + password), Resend and Tailwind CSS v4.
 
 ---
 
@@ -23,7 +23,7 @@ Built with Next.js 16 (App Router, Cache Components, Server Actions), React 19, 
 - Members: add, edit, deactivate, delete, **bulk import** from a pasted spreadsheet
 - Domains, seasons (one current season enforced by the database), join-request review
 - Team management with **owner / editor** roles and email invites (any address: college or personal)
-- Account page: change display name or switch sign-in email with OTP verification
+- Account page: change display name, change password, or switch sign-in email (confirmed with a code sent to the new address)
 - Settings: club profile, access-code rotation, CSV exports, club activity log
 
 **Platform admin** (`/admin`)
@@ -39,7 +39,7 @@ app/
   dashboard/       Club admin area (session-gated)
   admin/           Platform admin area
   api/             Auth, public JSON API, CSV export, health check
-  sign-in/         Passwordless email-OTP flow
+  sign-in/         Email + password sign-in (plus forgot-password/, reset-password/)
 components/        UI primitives (ui/), board and dashboard components
 lib/
   dal.ts           Data Access Layer: session + role checks (single source of truth)
@@ -59,7 +59,7 @@ tests/             Unit tests (vitest)
 ### Security model
 - **Defense in depth:** `proxy.ts` redirects signed-out visitors, but every page *and* every Server Action re-checks the session and role through `lib/dal.ts`. A forged cookie that slips past the proxy is still rejected.
 - **Roles:** platform admin → club owner → club editor. Owners manage settings, seasons, the team and destructive actions; editors handle day-to-day marks and members.
-- **Invite-only auth:** unknown emails never receive a code (and get an identical response, so accounts can't be enumerated). OTPs expire in 5 minutes, allow 3 attempts and are rate-limited in Postgres.
+- **Invite-only auth:** admins sign in with email + password; there is no public sign-up. Adding an admin (club owner, team member or platform admin) generates a random password, emails it to them and shows it once to the inviter. Wrong passwords and unknown emails get the same error, password-reset requests get the same response either way (so accounts can't be enumerated), and sign-in and reset attempts are rate-limited in Postgres. Passwords are hashed with scrypt. Club members never sign in: they use the club code.
 - **Integrity in the database:** unique case-insensitive names per club, one current season per club (partial unique index), check constraints on codes, dates and marks, transactional multi-row writes with row locks for reviews.
 - **Hardening:** strict security headers and CSP, open-redirect protection, CSV formula-injection escaping, no internal error messages sent to clients, access codes from a CSPRNG with an unambiguous alphabet.
 
@@ -74,12 +74,12 @@ Requirements: Node 22.12+, a Postgres database (a free [Neon](https://neon.tech)
 npm install
 cp .env.example .env.local      # then fill it in (see below)
 npm run db:migrate              # apply migrations
-npm run admin:create -- you@college.edu "Your Name"
+npm run admin:create -- you@college.edu "Your Name" 'a-strong-password'
 npm run db:seed -- you@college.edu   # optional: demo club with realistic data
 npm run dev
 ```
 
-Open http://localhost:3000/sign-in. **Without `RESEND_API_KEY`, sign-in codes are printed in the terminal** running `npm run dev`, so you can work fully offline.
+Open http://localhost:3000/sign-in and sign in with that email and password. **Without `RESEND_API_KEY`, emails (invites with passwords, reset links) are printed in the terminal** running `npm run dev`, so you can work fully offline. Forgot a password locally? `npm run admin:password -- you@college.edu 'new-password'`.
 
 ### Signing in with personal email addresses
 
@@ -90,7 +90,7 @@ Admins can use **any** address: college, Gmail, Outlook, iCloud and so on. Invit
 - The old address gets a security notice, and the change is audited.
 - An address that already belongs to another account is never sent a code.
 
-> **Email delivery:** Resend's test mode only delivers to the email you signed up to Resend with. For codes to reach other people's personal inboxes, [verify a domain in Resend](https://resend.com/domains) and set `RESEND_FROM_EMAIL` to an address on it, e.g. `Clubhouse <no-reply@yourdomain.com>`. If this is misconfigured, the server log shows `email.send_failed` with a hint explaining the fix.
+> **Email delivery:** Resend's test mode only delivers to the email you signed up to Resend with. For invites and reset links to reach other people's inboxes, [verify a domain in Resend](https://resend.com/domains) and set `RESEND_FROM_EMAIL` to an address on it, e.g. `Clubhouse <no-reply@yourdomain.com>`. If this is misconfigured, the server log shows `email.send_failed` with a hint explaining the fix.
 
 ### Environment variables
 
@@ -114,14 +114,15 @@ Admins can use **any** address: college, Gmail, Outlook, iCloud and so on. Invit
 | `npm run db:generate` | Create a migration after editing `lib/db/schema.ts` |
 | `npm run db:migrate` | Apply pending migrations |
 | `npm run db:studio` | Browse the database |
-| `npm run admin:create -- <email> [name]` | Bootstrap a platform admin |
+| `npm run admin:create -- <email> [name] [password]` | Bootstrap a platform admin (prints a generated password if none given) |
+| `npm run admin:password -- <email> <password>` | Set or reset a user's password and sign them out everywhere |
 | `npm run db:seed -- [ownerEmail]` | Create a demo club |
 
 ## Deployment (Vercel + Neon)
 
 1. Import the repo into Vercel and set the environment variables above, with `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` set to the production URL.
 2. Run `npm run db:migrate` against the production database (locally with the production `DATABASE_URL`, or as a release step).
-3. Run `npm run admin:create -- you@college.edu` once.
+3. Run `npm run admin:create -- you@college.edu "Your Name" 'a-strong-password'` once.
 4. Point an uptime monitor at `/api/health` (returns 503 if the database is unreachable).
 
 CI (`.github/workflows/ci.yml`) runs lint, typecheck, tests and a production build on every push and pull request.

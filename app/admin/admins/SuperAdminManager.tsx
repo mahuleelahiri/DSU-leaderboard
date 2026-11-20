@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ShieldCheck, Trash2 } from "lucide-react";
 import { addSuperAdmin, removeSuperAdmin } from "@/app/_actions/platform";
 import { formatDate } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { ConfirmButton, Spinner } from "@/components/ui/buttons";
+import { CredentialsDialog, type NewCredentials } from "@/components/ui/CredentialsDialog";
 import { useAction } from "@/components/ui/use-action";
 
 type Admin = { userId: string; email: string; name: string; createdAt: string };
@@ -13,14 +14,19 @@ type Admin = { userId: string; email: string; name: string; createdAt: string };
 export function SuperAdminManager({ viewerId, admins }: { viewerId: string; admins: Admin[] }) {
   const [pending, run] = useAction();
   const formRef = useRef<HTMLFormElement>(null);
+  const [credentials, setCredentials] = useState<NewCredentials>(null);
   return (
     <div className="space-y-6">
+      <CredentialsDialog credentials={credentials} onClose={() => setCredentials(null)} />
       <form
         ref={formRef}
         className="card flex flex-col gap-2 p-4 sm:flex-row"
         action={async (form) => {
           const ok = await run(() => addSuperAdmin({ email: String(form.get("email") ?? "") }));
-          if (ok !== null) formRef.current?.reset();
+          if (ok !== null) {
+            formRef.current?.reset();
+            setCredentials(ok.credentials);
+          }
         }}
       >
         <input name="email" type="email" className="input" placeholder="name@gmail.com" required aria-label="Email" />

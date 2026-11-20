@@ -4,12 +4,14 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { createClub, deleteClub } from "@/app/_actions/platform";
 import { Spinner } from "@/components/ui/buttons";
+import { CredentialsDialog, type NewCredentials } from "@/components/ui/CredentialsDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { Field } from "@/components/ui/misc";
 import { useAction } from "@/components/ui/use-action";
 
 export function CreateClubButton() {
   const [open, setOpen] = useState(false);
+  const [credentials, setCredentials] = useState<NewCredentials>(null);
   const [pending, run] = useAction();
 
   async function submit(form: FormData) {
@@ -22,7 +24,10 @@ export function CreateClubButton() {
         template: (form.get("template") as "creative" | "tech" | "blank") ?? "blank",
       }),
     );
-    if (result) setOpen(false);
+    if (result) {
+      setOpen(false);
+      setCredentials(result.credentials);
+    }
   }
 
   return (
@@ -30,6 +35,7 @@ export function CreateClubButton() {
       <button className="btn btn-primary" onClick={() => setOpen(true)}>
         <Plus size={16} /> New club
       </button>
+      <CredentialsDialog credentials={credentials} onClose={() => setCredentials(null)} />
       <Dialog open={open} onClose={() => setOpen(false)} title="Create a club" description="A unique access code and a 6-month season are created automatically.">
         <form action={submit} className="space-y-4">
           <Field label="Club name" htmlFor="cc-name">

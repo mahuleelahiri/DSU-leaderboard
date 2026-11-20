@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx --env-file=.env.local scripts/seed-demo.ts",
-    "admin:create": "tsx --env-file=.env.local scripts/create-super-admin.ts"
+    "admin:create": "tsx --env-file=.env.local scripts/create-super-admin.ts",
+    "admin:password": "tsx --env-file=.env.local scripts/set-password.ts"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.7.7",

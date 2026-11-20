@@ -9,8 +9,9 @@ import { runAction, UserFacingError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { accessTag, clubTag, PLATFORM_TAG, viewerTag } from "@/lib/cache-tags";
 import { db, isUniqueViolation } from "@/lib/db";
-import { admins, clubs, domains, joinRequests, markEntries, members, seasons, user } from "@/lib/db/schema";
+import { admins, clubs, domains, joinRequests, markEntries, members, seasons } from "@/lib/db/schema";
 import { adminDisplayName, assertClubAccess } from "@/lib/dal";
+import { provisionAdminUser, signInInstructions } from "@/lib/credentials";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { appUrl } from "@/lib/env";
 import { logger } from "@/lib/logger";
@@ -472,16 +473,13 @@ export async function addClubAdmin(input: z.input<typeof addAdminSchema>) {
   return runAction("addClubAdmin", addAdminSchema, input, async (data) => {
     const access = await assertClubAccess(data.clubId, "owner");
 
-    const userId = await db.transaction(async (tx) => {
-      const [existing] = await tx.select({ id: user.id }).from(user).where(eq(sql`lower(${user.email})`, data.email)).limit(1);
-      const uid =
-        existing?.id ??
-        (await tx.insert(user).values({ email: data.email, name: data.name, emailVerified: false }).returning({ id: user.id }))[0].id;
+    const { userId, credentials } = await db.transaction(async (tx) => {
+      const { userId: uid, credentials } = await provisionAdminUser(tx, data.email, data.name);
       const [already] = await tx.select({ role: admins.role }).from(admins).where(and(eq(admins.clubId, data.clubId), eq(admins.userId, uid)));
       if (already) throw new UserFacingError(`${data.email} is already a ${already.role} of this club.`);
       await tx.insert(admins).values({ clubId: data.clubId, userId: uid, email: data.email, name: data.name, role: data.role });
       await audit({ actor: access.viewer, clubId: data.clubId, action: "admin.add", summary: `Added ${data.email} as ${data.role}`, targetType: "user", targetId: uid }, tx);
-      return uid;
+      return { userId: uid, credentials };
     });
 
     const clubName = access.club.name;
@@ -491,7 +489,7 @@ export async function addClubAdmin(input: z.input<typeof addAdminSchema>) {
           to: data.email,
           subject: `You've been added to ${clubName} on Clubhouse`,
           heading: `Welcome to ${clubName}`,
-          body: `<p>${escapeHtml(access.viewer.name)} added you as ${data.role === "owner" ? "an owner" : "an editor"} of <strong>${escapeHtml(clubName)}</strong>.</p><p>Sign in with this email address — we'll send you a one-time code, no password needed.</p>`,
+          body: `<p>${escapeHtml(access.viewer.name)} added you as ${data.role === "owner" ? "an owner" : "an editor"} of <strong>${escapeHtml(clubName)}</strong>.</p>${signInInstructions(credentials)}`,
           cta: { label: "Open your dashboard", href: `${appUrl()}/sign-in?next=/dashboard/${data.clubId}` },
         });
       } catch (error) {
@@ -500,7 +498,7 @@ export async function addClubAdmin(input: z.input<typeof addAdminSchema>) {
     });
 
     invalidateTeam(data.clubId, userId);
-    return { data: undefined, message: `${data.email} can now sign in to manage ${clubName}.` };
+    return { data: { credentials }, message: `${data.email} can now sign in to manage ${clubName}.` };
   });
 }
 

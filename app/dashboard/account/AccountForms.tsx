@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, ShieldCheck, User } from "lucide-react";
+import { KeyRound, Mail, ShieldCheck, User } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/buttons";
 import { Field } from "@/components/ui/misc";
 import { useToast } from "@/components/ui/Toaster";
+import { friendlyAuthError, PasswordInput } from "@/app/sign-in/SignInForm";
 
 type Club = { id: string; name: string; role: string };
 
@@ -24,6 +25,7 @@ export function AccountForms({ name, email, isSuperAdmin, clubs }: { name: strin
   return (
     <div className="space-y-6">
       <ProfileCard name={name} />
+      <PasswordCard />
       <EmailCard email={email} />
       <section className="card p-5">
         <h2 className="flex items-center gap-2 font-semibold">
@@ -72,6 +74,50 @@ function ProfileCard({ name }: { name: string }) {
       </Field>
       <button className="btn btn-primary" disabled={busy || value.trim() === name}>
         {busy ? <Spinner /> : "Save"}
+      </button>
+    </form>
+  );
+}
+
+function PasswordCard() {
+  const toast = useToast();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (next.length < 8) return toast.error("Use at least 8 characters for the new password.");
+    if (next !== confirm) return toast.error("The new passwords don't match.");
+    setBusy(true);
+    const { error } = await authClient.changePassword({ currentPassword: current, newPassword: next, revokeOtherSessions: true });
+    setBusy(false);
+    if (error) return toast.error(friendlyAuthError(error));
+    setCurrent("");
+    setNext("");
+    setConfirm("");
+    toast.success("Password changed. Other devices have been signed out.");
+  }
+
+  return (
+    <form onSubmit={save} className="card space-y-4 p-5">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <KeyRound size={16} className="text-brand" /> Password
+      </h2>
+      <Field label="Current password" htmlFor="acc-pw-current">
+        <PasswordInput id="acc-pw-current" value={current} onChange={setCurrent} autoComplete="current-password" />
+      </Field>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Field label="New password" htmlFor="acc-pw-new" hint="At least 8 characters.">
+          <PasswordInput id="acc-pw-new" value={next} onChange={setNext} autoComplete="new-password" />
+        </Field>
+        <Field label="Confirm new password" htmlFor="acc-pw-confirm">
+          <PasswordInput id="acc-pw-confirm" value={confirm} onChange={setConfirm} autoComplete="new-password" />
+        </Field>
+      </div>
+      <button className="btn btn-primary" disabled={busy || !current || !next || !confirm}>
+        {busy ? <Spinner /> : "Change password"}
       </button>
     </form>
   );

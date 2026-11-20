@@ -60,29 +60,56 @@ function createAuth() {
       window: 60,
       max: 60,
       customRules: {
-        "/email-otp/send-verification-otp": { window: 60, max: 3 },
-        "/sign-in/email-otp": { window: 60, max: 5 },
+        "/sign-in/email": { window: 60, max: 5 },
+        "/request-password-reset": { window: 60, max: 3 },
+        "/email-otp/request-email-change": { window: 60, max: 3 },
       },
     },
+    // Admins sign in with email + password. Accounts are only created by
+    // invites or the CLI (each gets a generated password), never by sign-up.
+    emailAndPassword: {
+      enabled: true,
+      disableSignUp: true,
+      minPasswordLength: 8,
+      maxPasswordLength: 128,
+      revokeSessionsOnPasswordReset: true,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      async sendResetPassword({ user, url }) {
+        await sendEmail({
+          to: user.email,
+          subject: "Reset your Clubhouse password",
+          heading: "Reset your password",
+          body: "<p>Someone (hopefully you) asked to reset the password for this Clubhouse account. The link expires in 1 hour.</p><p style=\"color:#6b7280;font-size:13px\">If you didn't ask for this, ignore this email and your password stays the same.</p>",
+          cta: { label: "Choose a new password", href: url },
+        });
+      },
+    },
+    // One-time codes are kept only to confirm a change of sign-in email (the
+    // code goes to the NEW address to prove ownership). Every other email-OTP
+    // route, including code-based sign-in, is switched off.
+    disabledPaths: [
+      "/email-otp/send-verification-otp",
+      "/email-otp/check-verification-otp",
+      "/email-otp/verify-email",
+      "/sign-in/email-otp",
+      "/email-otp/request-password-reset",
+      "/forget-password/email-otp",
+      "/email-otp/reset-password",
+    ],
     plugins: [
       emailOTP({
         otpLength: 6,
         expiresIn: 300,
         allowedAttempts: 3,
-        // Admin accounts are provisioned by invites or the bootstrap script and
-        // may use any address (college or personal: Gmail, Outlook, iCloud…).
-        // Unknown emails never receive a code, which blocks account spam.
         disableSignUp: true,
-        // Lets an admin move their account to a personal address; the code is
-        // sent to the NEW address to prove they own it.
         changeEmail: { enabled: true },
         async sendVerificationOTP({ email, otp, type }) {
-          const changing = type === "change-email";
+          if (type !== "change-email") return; // other OTP routes are disabled above
           await sendEmail({
             to: email,
-            subject: changing ? `${otp} confirms your new Clubhouse email` : `${otp} is your Clubhouse sign-in code`,
-            heading: changing ? "Confirm your new email" : "Your sign-in code",
-            body: otpEmailBody(otp, changing ? "change-email" : "sign-in"),
+            subject: `${otp} confirms your new Clubhouse email`,
+            heading: "Confirm your new email",
+            body: otpEmailBody(otp),
           });
         },
       }),
@@ -101,7 +128,7 @@ function createAuth() {
     advanced: {
       useSecureCookies: isProduction,
       database: { generateId: "uuid" },
-      // OTP emails are sent after the response (prevents timing-based account
+      // Auth emails are sent after the response (prevents timing-based account
       // enumeration). after() keeps serverless functions alive until they finish.
       backgroundTasks: { handler: (task) => after(task) },
       ipAddress: { ipAddressHeaders: ["x-forwarded-for", "x-real-ip"] },
@@ -110,15 +137,17 @@ function createAuth() {
 }
 
 type Auth = ReturnType<typeof createAuth>;
-const globalForAuth = globalThis as unknown as { __clubhouseAuth?: { key: string; auth: Auth } };
+const globalForAuth = globalThis as unknown as { __clubhouseAuth?: { key: string; factory: typeof createAuth; auth: Auth } };
 
 /**
  * Lazily constructed so environment validation happens at runtime, not build
- * time. Rebuilt if auth settings change (e.g. .env.local edited during dev).
+ * time. Rebuilt if auth settings change (e.g. .env.local edited during dev) or
+ * this file is hot-reloaded (a new `createAuth` means the config changed).
  */
 export function getAuth(): Auth {
   const e = env();
   const key = [e.BETTER_AUTH_SECRET, e.BETTER_AUTH_URL, e.NEXT_PUBLIC_APP_URL, e.DATABASE_URL].join("\u0000");
-  if (globalForAuth.__clubhouseAuth?.key !== key) globalForAuth.__clubhouseAuth = { key, auth: createAuth() };
-  return globalForAuth.__clubhouseAuth.auth;
+  const cached = globalForAuth.__clubhouseAuth;
+  if (cached?.key !== key || cached.factory !== createAuth) globalForAuth.__clubhouseAuth = { key, factory: createAuth, auth: createAuth() };
+  return globalForAuth.__clubhouseAuth!.auth;
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { Trash2, UserPlus } from "lucide-react";
 import { addClubAdmin, changeAdminRole, removeClubAdmin } from "@/app/_actions/club";
 import { timeAgo } from "@/lib/utils";
 import { Avatar } from "@/components/ui/Avatar";
 import { ConfirmButton, Spinner } from "@/components/ui/buttons";
+import { CredentialsDialog, type NewCredentials } from "@/components/ui/CredentialsDialog";
 import { useAction } from "@/components/ui/use-action";
 
 type Admin = { userId: string; name: string; email: string; role: "owner" | "editor"; createdAt: string; lastSeen: string | null };
@@ -13,9 +14,11 @@ type Admin = { userId: string; name: string; email: string; role: "owner" | "edi
 export function TeamManager({ clubId, viewerId, admins, canManage }: { clubId: string; viewerId: string; admins: Admin[]; canManage: boolean }) {
   const [pending, run] = useAction();
   const formRef = useRef<HTMLFormElement>(null);
+  const [credentials, setCredentials] = useState<NewCredentials>(null);
 
   return (
     <div className="space-y-6">
+      <CredentialsDialog credentials={credentials} onClose={() => setCredentials(null)} />
       {canManage && (
         <form
           ref={formRef}
@@ -24,7 +27,10 @@ export function TeamManager({ clubId, viewerId, admins, canManage }: { clubId: s
             const ok = await run(() =>
               addClubAdmin({ clubId, email: String(form.get("email") ?? ""), name: String(form.get("name") ?? ""), role: form.get("role") === "owner" ? "owner" : "editor" }),
             );
-            if (ok !== null) formRef.current?.reset();
+            if (ok !== null) {
+              formRef.current?.reset();
+              setCredentials(ok.credentials);
+            }
           }}
         >
           <div>
@@ -51,7 +57,7 @@ export function TeamManager({ clubId, viewerId, admins, canManage }: { clubId: s
           <button className="btn btn-primary" disabled={pending}>
             {pending ? <Spinner /> : <><UserPlus size={15} /> Invite</>}
           </button>
-          <p className="text-xs text-muted sm:col-span-4">Any address works, personal or college. They’ll get an email and sign in with a one-time code, with no password to share.</p>
+          <p className="text-xs text-muted sm:col-span-4">Any address works, personal or college. New admins get a generated password by email (shown to you once too). People who already have a Clubhouse password keep it.</p>
         </form>
       )}
 

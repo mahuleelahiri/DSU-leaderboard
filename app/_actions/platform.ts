@@ -8,20 +8,14 @@ import { generateAccessCode } from "@/lib/access-code";
 import { runAction, UserFacingError } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { accessTag, clubTag, PLATFORM_TAG, viewerTag } from "@/lib/cache-tags";
-import { db, isUniqueViolation, type Tx } from "@/lib/db";
+import { db, isUniqueViolation } from "@/lib/db";
 import { admins, clubs, domains, seasons, superAdmins, user } from "@/lib/db/schema";
+import { provisionAdminUser, signInInstructions, type Credentials } from "@/lib/credentials";
 import { assertSuperAdmin } from "@/lib/dal";
 import { escapeHtml, sendEmail } from "@/lib/email";
 import { appUrl } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { createClubSchema, DOMAIN_TEMPLATES, email, id, personName } from "@/lib/validation";
-
-async function findOrCreateUser(tx: Tx, address: string, name: string) {
-  const [existing] = await tx.select({ id: user.id }).from(user).where(eq(sql`lower(${user.email})`, address)).limit(1);
-  if (existing) return existing.id;
-  const [created] = await tx.insert(user).values({ email: address, name, emailVerified: false }).returning({ id: user.id });
-  return created.id;
-}
 
 export async function createClub(input: z.input<typeof createClubSchema>) {
   return runAction("createClub", createClubSchema, input, async (data) => {
@@ -43,12 +37,13 @@ export async function createClub(input: z.input<typeof createClubSchema>) {
           end.setMonth(end.getMonth() + 6);
           await tx.insert(seasons).values({ clubId: created.id, name: `Season ${start.getFullYear()}`, startDate: start, endDate: end, isCurrent: true });
           let ownerId: string | null = null;
+          let credentials: Credentials | null = null;
           if (ownerEmail) {
-            ownerId = await findOrCreateUser(tx, ownerEmail, ownerName);
+            ({ userId: ownerId, credentials } = await provisionAdminUser(tx, ownerEmail, ownerName));
             await tx.insert(admins).values({ clubId: created.id, userId: ownerId, email: ownerEmail, name: ownerName, role: "owner" });
           }
           await audit({ actor: viewer, clubId: created.id, action: "club.create", summary: `Created club ${created.name}${ownerEmail ? ` with owner ${ownerEmail}` : ""}` }, tx);
-          return { ...created, ownerId };
+          return { ...created, ownerId, credentials };
         });
 
         if (ownerEmail) {
@@ -58,7 +53,7 @@ export async function createClub(input: z.input<typeof createClubSchema>) {
                 to: ownerEmail,
                 subject: `You're the owner of ${club.name} on Clubhouse`,
                 heading: `${club.name} is ready`,
-                body: `<p>You've been made the owner of <strong>${escapeHtml(club.name)}</strong>. Add members, award marks and share the board with access code <strong>${club.accessCode}</strong>.</p>`,
+                body: `<p>You've been made the owner of <strong>${escapeHtml(club.name)}</strong>. Add members, award marks and share the board with access code <strong>${club.accessCode}</strong>.</p>${signInInstructions(club.credentials)}`,
                 cta: { label: "Open your dashboard", href: `${appUrl()}/sign-in?next=/dashboard/${club.id}` },
               });
             } catch (error) {
@@ -69,7 +64,7 @@ export async function createClub(input: z.input<typeof createClubSchema>) {
         updateTag(PLATFORM_TAG);
         if (club.ownerId) updateTag(viewerTag(club.ownerId));
         refresh();
-        return { data: { id: club.id, name: club.name, accessCode: club.accessCode }, message: `${club.name} created with code ${club.accessCode}.` };
+        return { data: { id: club.id, name: club.name, accessCode: club.accessCode, credentials: club.credentials }, message: `${club.name} created with code ${club.accessCode}.` };
       } catch (error) {
         if (!isUniqueViolation(error, "clubs_access_code_unique")) throw error;
       }
@@ -105,17 +100,30 @@ const superAdminSchema = z.object({ email, name: personName.optional() });
 export async function addSuperAdmin(input: z.input<typeof superAdminSchema>) {
   return runAction("addSuperAdmin", superAdminSchema, input, async (data) => {
     const viewer = await assertSuperAdmin();
-    const uid = await db.transaction(async (tx) => {
-      const uid = await findOrCreateUser(tx, data.email, data.name ?? data.email.split("@")[0]);
+    const { uid, credentials } = await db.transaction(async (tx) => {
+      const { userId: uid, credentials } = await provisionAdminUser(tx, data.email, data.name ?? data.email.split("@")[0]);
       const inserted = await tx.insert(superAdmins).values({ userId: uid }).onConflictDoNothing().returning();
       if (inserted.length === 0) throw new UserFacingError(`${data.email} is already a platform admin.`);
       await audit({ actor: viewer, action: "platform.admin_add", summary: `Granted platform admin to ${data.email}`, targetType: "user", targetId: uid }, tx);
-      return uid;
+      return { uid, credentials };
+    });
+    after(async () => {
+      try {
+        await sendEmail({
+          to: data.email,
+          subject: "You're now a Clubhouse platform admin",
+          heading: "Platform admin access",
+          body: `<p>${escapeHtml(viewer.name)} made you a platform admin on Clubhouse.</p>${signInInstructions(credentials)}`,
+          cta: { label: "Sign in", href: `${appUrl()}/sign-in?next=/admin` },
+        });
+      } catch (error) {
+        logger.warn("platform.admin_email_failed", { error: error instanceof Error ? error.message : String(error) });
+      }
     });
     updateTag(viewerTag(uid));
     updateTag(PLATFORM_TAG);
     refresh();
-    return { data: undefined, message: `${data.email} is now a platform admin.` };
+    return { data: { credentials }, message: `${data.email} is now a platform admin.` };
   });
 }
 
