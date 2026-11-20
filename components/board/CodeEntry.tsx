@@ -98,7 +98,7 @@ export function CodeEntry() {
           <span className="font-mono text-xs text-muted">{last.code}</span>
         </Link>
       )}
-      <p className="mt-5 border-t border-line pt-4 text-xs text-muted">No account needed to view a board. Codes can be rotated by club owners at any time.</p>
+      <p className="mt-5 border-t border-line pt-4 text-xs text-muted">No account needed to view a board. Codes can be rotated by club presidents at any time.</p>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "Account" };
 
 async function Account() {
   const viewer = await requireViewer("/dashboard/account");
-  const clubs = (await listViewerClubs(viewer.id, false)).map((c) => ({ id: c.id, name: c.name, role: c.role ?? "editor" }));
+  const clubs = (await listViewerClubs(viewer.id, false)).map((c) => ({ id: c.id, name: c.name, role: c.role ?? "member" }));
   return (
     <>
       <PageHeader title="Your account" description="Sign in with any email you like, whether it's college or personal (Gmail, Outlook, iCloud…). Your club roles stay attached to your account, not the address." />

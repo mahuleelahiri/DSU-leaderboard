@@ -11,18 +11,18 @@ export const metadata: Metadata = { title: "Settings" };
 export default async function SettingsPage({ params, searchParams }: PageProps<"/dashboard/[clubId]/settings">) {
   const [{ clubId }, sp] = await Promise.all([params, searchParams]);
   const access = await requireClubPage(clubId);
-  const isOwner = hasRole(access, "owner");
+  const isPresident = hasRole(access, "president");
   const page = Number(typeof sp.page === "string" ? sp.page : 1) || 1;
   const [audit, seasons] = await Promise.all([listAuditLogs(clubId, page), listSeasons(clubId)]);
   const { club } = access;
 
   return (
     <>
-      <PageHeader title="Settings" description={isOwner ? "Manage how your club appears and who can reach it." : "Only owners can change settings; you can still export data and view the activity log."} />
+      <PageHeader title="Settings" description={isPresident ? "Manage how your club appears and who can reach it." : "Only the president can change settings; you can still export data and view the activity log."} />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <ClubSettingsForm clubId={clubId} disabled={!isOwner} initial={{ name: club.name, description: club.description ?? "", allowJoinRequests: club.allowJoinRequests }} />
-        <AccessCodeCard clubId={clubId} code={club.accessCode} canRotate={isOwner} />
+        <ClubSettingsForm clubId={clubId} disabled={!isPresident} initial={{ name: club.name, description: club.description ?? "", allowJoinRequests: club.allowJoinRequests }} />
+        <AccessCodeCard clubId={clubId} code={club.accessCode} canRotate={isPresident} />
       </div>
 
       <section className="card mt-6 p-5">

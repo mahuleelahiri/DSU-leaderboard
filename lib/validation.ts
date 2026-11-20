@@ -93,7 +93,7 @@ export const clubSettingsSchema = z.object({
   allowJoinRequests: z.boolean(),
 });
 
-export const adminRoleSchema = z.enum(["owner", "editor"]);
+export const adminRoleSchema = z.enum(["president", "member"]);
 export const addAdminSchema = z.object({ clubId: id, email, name: personName, role: adminRoleSchema });
 
 export const createClubSchema = z.object({

@@ -175,7 +175,7 @@ export async function updateMember(input: z.input<typeof updateMemberSchema>) {
 const memberRef = z.object({ clubId: id, memberId: id });
 export async function deleteMember(input: z.input<typeof memberRef>) {
   return runAction("deleteMember", memberRef, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     const removed = await db.transaction(async (tx) => {
       const [member] = await tx
         .select({ name: members.name })
@@ -290,7 +290,7 @@ export async function deleteDomain(input: z.input<typeof domainRef>) {
     domainRef,
     input,
     async (data) => {
-      const access = await assertClubAccess(data.clubId, "owner");
+      const access = await assertClubAccess(data.clubId, "president");
       const removed = await db.transaction(async (tx) => {
         // Clean up already-reviewed requests; pending ones must be handled first.
         await tx.delete(joinRequests).where(and(eq(joinRequests.domainId, data.domainId), ne(joinRequests.status, "pending")));
@@ -316,7 +316,7 @@ const dayEnd = (value: string) => new Date(`${value}T23:59:59.999Z`);
 
 export async function createSeason(input: z.input<typeof seasonSchema>) {
   return runAction("createSeason", seasonSchema, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     await db.transaction(async (tx) => {
       if (data.makeCurrent) await tx.update(seasons).set({ isCurrent: false }).where(eq(seasons.clubId, data.clubId));
       const [season] = await tx
@@ -335,7 +335,7 @@ const updateSeasonSchema = z
   .refine((v) => v.endDate >= v.startDate, { message: "End date must be on or after the start date." });
 export async function updateSeason(input: z.input<typeof updateSeasonSchema>) {
   return runAction("updateSeason", updateSeasonSchema, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     const [row] = await db
       .update(seasons)
       .set({ name: data.name, startDate: dayStart(data.startDate), endDate: dayEnd(data.endDate) })
@@ -351,7 +351,7 @@ export async function updateSeason(input: z.input<typeof updateSeasonSchema>) {
 const seasonRef = z.object({ clubId: id, seasonId: id });
 export async function setCurrentSeason(input: z.input<typeof seasonRef>) {
   return runAction("setCurrentSeason", seasonRef, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     const name = await db.transaction(async (tx) => {
       const [target] = await tx.select({ name: seasons.name }).from(seasons).where(and(eq(seasons.id, data.seasonId), eq(seasons.clubId, data.clubId)));
       if (!target) throw new UserFacingError("That season no longer exists.");
@@ -371,7 +371,7 @@ export async function deleteSeason(input: z.input<typeof seasonRef>) {
     seasonRef,
     input,
     async (data) => {
-      const access = await assertClubAccess(data.clubId, "owner");
+      const access = await assertClubAccess(data.clubId, "president");
       const [row] = await db
         .delete(seasons)
         .where(and(eq(seasons.id, data.seasonId), eq(seasons.clubId, data.clubId)))
@@ -431,7 +431,7 @@ export async function reviewJoinRequest(input: z.input<typeof reviewSchema>) {
 
 export async function updateClubSettings(input: z.input<typeof clubSettingsSchema>) {
   return runAction("updateClubSettings", clubSettingsSchema, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     await db
       .update(clubs)
       .set({ name: data.name, description: data.description, allowJoinRequests: data.allowJoinRequests })
@@ -444,7 +444,7 @@ export async function updateClubSettings(input: z.input<typeof clubSettingsSchem
 
 export async function regenerateAccessCode(input: z.input<typeof clubRef>) {
   return runAction("regenerateAccessCode", clubRef, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const code = generateAccessCode();
       try {
@@ -471,7 +471,7 @@ function invalidateTeam(clubId: string, userId: string) {
 
 export async function addClubAdmin(input: z.input<typeof addAdminSchema>) {
   return runAction("addClubAdmin", addAdminSchema, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
 
     const { userId, credentials } = await db.transaction(async (tx) => {
       const { userId: uid, credentials } = await provisionAdminUser(tx, data.email, data.name);
@@ -489,7 +489,7 @@ export async function addClubAdmin(input: z.input<typeof addAdminSchema>) {
           to: data.email,
           subject: `You've been added to ${clubName} on Clubhouse`,
           heading: `Welcome to ${clubName}`,
-          body: `<p>${escapeHtml(access.viewer.name)} added you as ${data.role === "owner" ? "an owner" : "an editor"} of <strong>${escapeHtml(clubName)}</strong>.</p>${signInInstructions(credentials)}`,
+          body: `<p>${escapeHtml(access.viewer.name)} added you as ${data.role === "president" ? "a president" : "a team member"} of <strong>${escapeHtml(clubName)}</strong>.</p>${signInInstructions(credentials)}`,
           cta: { label: "Open your dashboard", href: `${appUrl()}/sign-in?next=/dashboard/${data.clubId}` },
         });
       } catch (error) {
@@ -502,35 +502,35 @@ export async function addClubAdmin(input: z.input<typeof addAdminSchema>) {
   });
 }
 
-async function ownerCount(clubId: string) {
-  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(admins).where(and(eq(admins.clubId, clubId), eq(admins.role, "owner")));
+async function presidentCount(clubId: string) {
+  const [row] = await db.select({ n: sql<number>`count(*)::int` }).from(admins).where(and(eq(admins.clubId, clubId), eq(admins.role, "president")));
   return row?.n ?? 0;
 }
 
 const roleChangeSchema = z.object({ clubId: id, userId: id, role: adminRoleSchema });
 export async function changeAdminRole(input: z.input<typeof roleChangeSchema>) {
   return runAction("changeAdminRole", roleChangeSchema, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     const [target] = await db.select().from(admins).where(and(eq(admins.clubId, data.clubId), eq(admins.userId, data.userId)));
     if (!target) throw new UserFacingError("That admin no longer exists.");
-    if (target.role === "owner" && data.role !== "owner" && (await ownerCount(data.clubId)) <= 1) {
-      throw new UserFacingError("A club needs at least one owner. Promote someone else first.");
+    if (target.role === "president" && data.role !== "president" && (await presidentCount(data.clubId)) <= 1) {
+      throw new UserFacingError("A club needs at least one president. Make someone else president first.");
     }
     await db.update(admins).set({ role: data.role }).where(and(eq(admins.clubId, data.clubId), eq(admins.userId, data.userId)));
     await audit({ actor: access.viewer, clubId: data.clubId, action: "admin.role", summary: `Changed ${target.email} to ${data.role}`, targetType: "user", targetId: data.userId });
     invalidateTeam(data.clubId, data.userId);
-    return { data: undefined, message: `${target.name} is now ${data.role === "owner" ? "an owner" : "an editor"}.` };
+    return { data: undefined, message: `${target.name} is now ${data.role === "president" ? "a president" : "a team member"}.` };
   });
 }
 
 const adminRef = z.object({ clubId: id, userId: id });
 export async function removeClubAdmin(input: z.input<typeof adminRef>) {
   return runAction("removeClubAdmin", adminRef, input, async (data) => {
-    const access = await assertClubAccess(data.clubId, "owner");
+    const access = await assertClubAccess(data.clubId, "president");
     const [target] = await db.select().from(admins).where(and(eq(admins.clubId, data.clubId), eq(admins.userId, data.userId)));
     if (!target) throw new UserFacingError("That admin was already removed.");
-    if (target.role === "owner" && (await ownerCount(data.clubId)) <= 1) {
-      throw new UserFacingError("You can't remove the last owner of a club.");
+    if (target.role === "president" && (await presidentCount(data.clubId)) <= 1) {
+      throw new UserFacingError("You can't remove the last president of a club.");
     }
     await db.delete(admins).where(and(eq(admins.clubId, data.clubId), eq(admins.userId, data.userId)));
     await audit({ actor: access.viewer, clubId: data.clubId, action: "admin.remove", summary: `Removed ${target.email} from the team`, targetType: "user", targetId: data.userId });

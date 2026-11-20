@@ -83,7 +83,7 @@ export async function requireSuperAdminPage() {
   return viewer;
 }
 
-const ROLE_WEIGHT: Record<AdminRole, number> = { editor: 1, owner: 2 };
+const ROLE_WEIGHT: Record<AdminRole, number> = { member: 1, president: 2 };
 
 export type ClubAccess = {
   viewer: Viewer;
@@ -101,7 +101,7 @@ function resolveAccess(
 ): ClubAccess | null {
   if (!row) return null;
   if (row.role) return { viewer, club: row.club, role: row.role, viaPlatform: false, adminName: row.adminName };
-  if (viewer.isSuperAdmin) return { viewer, club: row.club, role: "owner", viaPlatform: true, adminName: null };
+  if (viewer.isSuperAdmin) return { viewer, club: row.club, role: "president", viaPlatform: true, adminName: null };
   return null;
 }
 
@@ -118,16 +118,16 @@ export function hasRole(access: Pick<ClubAccess, "role">, minimum: AdminRole) {
 }
 
 /** For pages: 404-style redirect when the viewer can't manage this club. */
-export async function requireClubPage(clubId: string, minimum: AdminRole = "editor") {
+export async function requireClubPage(clubId: string, minimum: AdminRole = "member") {
   await requireViewer(`/dashboard/${clubId}`);
   const access = await getClubAccess(clubId);
   if (!access) redirect("/dashboard?denied=club");
-  if (!hasRole(access, minimum)) redirect(`/dashboard/${clubId}?denied=owner`);
+  if (!hasRole(access, minimum)) redirect(`/dashboard/${clubId}?denied=president`);
   return access;
 }
 
 /** For server actions: fresh from the database, one round trip, throws instead of redirecting. */
-export async function assertClubAccess(clubId: string, minimum: AdminRole = "editor") {
+export async function assertClubAccess(clubId: string, minimum: AdminRole = "member") {
   const user = await getSessionUser();
   if (!user) throw new AuthorizationError("Your session has expired. Please sign in again.");
   if (!UUID.test(clubId)) throw new AuthorizationError("You don't manage this club.");
@@ -144,7 +144,7 @@ export async function assertClubAccess(clubId: string, minimum: AdminRole = "edi
     .limit(1);
   const access = resolveAccess(toViewer(user, Boolean(row?.isSuperAdmin)), row ?? null);
   if (!access) throw new AuthorizationError("You don't manage this club.");
-  if (!hasRole(access, minimum)) throw new AuthorizationError("Only club owners can do that.");
+  if (!hasRole(access, minimum)) throw new AuthorizationError("Only the club president can do that.");
   return access;
 }
 

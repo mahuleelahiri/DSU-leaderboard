@@ -55,10 +55,10 @@ export async function submitJoinRequest(input: z.input<typeof joinRequestSchema>
 
     after(async () => {
       try {
-        const owners = await db.select({ email: admins.email }).from(admins).where(eq(admins.clubId, club.id));
-        if (owners.length === 0) return;
+        const team = await db.select({ email: admins.email }).from(admins).where(eq(admins.clubId, club.id));
+        if (team.length === 0) return;
         await sendEmail({
-          to: owners.map((o) => o.email),
+          to: team.map((o) => o.email),
           subject: `New join request for ${club.name}`,
           heading: "Someone wants to join",
           body: `<p><strong>${escapeHtml(data.name)}</strong> asked to join <strong>${escapeHtml(domain.name)}</strong> in ${escapeHtml(club.name)}.</p>${data.note ? `<p style="color:#6b7280">“${escapeHtml(data.note)}”</p>` : ""}`,

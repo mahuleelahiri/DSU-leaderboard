@@ -9,7 +9,7 @@ import { ConfirmButton, Spinner } from "@/components/ui/buttons";
 import { CredentialsDialog, type NewCredentials } from "@/components/ui/CredentialsDialog";
 import { useAction } from "@/components/ui/use-action";
 
-type Admin = { userId: string; name: string; email: string; role: "owner" | "editor"; createdAt: string; lastSeen: string | null };
+type Admin = { userId: string; name: string; email: string; role: "president" | "member"; createdAt: string; lastSeen: string | null };
 
 export function TeamManager({ clubId, viewerId, admins, canManage }: { clubId: string; viewerId: string; admins: Admin[]; canManage: boolean }) {
   const [pending, run] = useAction();
@@ -25,7 +25,7 @@ export function TeamManager({ clubId, viewerId, admins, canManage }: { clubId: s
           className="card grid gap-3 p-4 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"
           action={async (form) => {
             const ok = await run(() =>
-              addClubAdmin({ clubId, email: String(form.get("email") ?? ""), name: String(form.get("name") ?? ""), role: form.get("role") === "owner" ? "owner" : "editor" }),
+              addClubAdmin({ clubId, email: String(form.get("email") ?? ""), name: String(form.get("name") ?? ""), role: form.get("role") === "president" ? "president" : "member" }),
             );
             if (ok !== null) {
               formRef.current?.reset();
@@ -49,9 +49,9 @@ export function TeamManager({ clubId, viewerId, admins, canManage }: { clubId: s
             <label className="label" htmlFor="t-role">
               Role
             </label>
-            <select id="t-role" name="role" className="input" defaultValue="editor">
-              <option value="editor">Editor</option>
-              <option value="owner">Owner</option>
+            <select id="t-role" name="role" className="input" defaultValue="member">
+              <option value="member">Member</option>
+              <option value="president">President</option>
             </select>
           </div>
           <button className="btn btn-primary" disabled={pending}>
@@ -92,15 +92,15 @@ function AdminRow({ clubId, admin, isSelf, canManage }: { clubId: string; admin:
             aria-label={`Role for ${admin.name}`}
             onChange={(e) => void run(() => changeAdminRole({ clubId, userId: admin.userId, role: e.target.value as Admin["role"] }))}
           >
-            <option value="owner">Owner</option>
-            <option value="editor">Editor</option>
+            <option value="president">President</option>
+            <option value="member">Member</option>
           </select>
           <ConfirmButton className="btn btn-danger-ghost btn-sm" confirmLabel={isSelf ? "Leave club?" : "Remove?"} pending={pending} onConfirm={() => void run(() => removeClubAdmin({ clubId, userId: admin.userId }))}>
             <Trash2 size={14} />
           </ConfirmButton>
         </>
       ) : (
-        <span className={admin.role === "owner" ? "badge badge-brand" : "badge"}>{admin.role}</span>
+        <span className={admin.role === "president" ? "badge badge-brand capitalize" : "badge capitalize"}>{admin.role}</span>
       )}
     </li>
   );

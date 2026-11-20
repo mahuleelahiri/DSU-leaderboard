@@ -8,7 +8,7 @@ const features = [
   { icon: Layers, title: "Domains & teams", body: "Split members into domains like Design or Web Dev, each with its own ranking." },
   { icon: CalendarRange, title: "Seasons", body: "Start fresh each semester and keep every past season browsable forever." },
   { icon: Inbox, title: "Join requests", body: "Visitors can ask to join; admins approve them into the right domain in one click." },
-  { icon: ShieldCheck, title: "Roles & audit trail", body: "Owners and editors per club, platform admins above them, and every change logged." },
+  { icon: ShieldCheck, title: "Roles & audit trail", body: "A president and team members per club, platform admins above them, and every change logged." },
   { icon: History, title: "Transparent history", body: "Tap anyone on the board to see exactly how they earned every mark." },
 ];
 
@@ -103,8 +103,8 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
           <div className="grid gap-8 md:grid-cols-3">
             {[
-              ["01", "Platform admin creates a club", "Pick a domain template and assign an owner by email. A unique access code is generated."],
-              ["02", "Owners build the roster", "Add members one by one, bulk-import from a spreadsheet, or approve join requests."],
+              ["01", "Platform admin creates a club", "Pick a domain template and assign a president by email. A unique access code is generated."],
+              ["02", "Presidents build the roster", "Add members one by one, bulk-import from a spreadsheet, or approve join requests."],
               ["03", "Award marks, share the code", "Every award shows up on the public board instantly. Members tap their name to see why."],
             ].map(([step, title, body]) => (
               <div key={step}>

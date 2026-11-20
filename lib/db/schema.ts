@@ -23,7 +23,7 @@ const updatedAt = () =>
     .$onUpdate(() => new Date());
 
 export const joinRequestStatus = pgEnum("join_request_status", ["pending", "approved", "rejected"]);
-export const adminRole = pgEnum("admin_role", ["owner", "editor"]);
+export const adminRole = pgEnum("admin_role", ["president", "member"]);
 
 /* -------------------------------------------------------------------------- */
 /*                               Better Auth core                             */
@@ -151,7 +151,7 @@ export const admins = pgTable(
       .references(() => clubs.id, { onDelete: "cascade" }),
     email: text("email").notNull(),
     name: text("name").notNull(),
-    role: adminRole("role").notNull().default("editor"),
+    role: adminRole("role").notNull().default("member"),
     createdAt: createdAt(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.clubId] }), index("admins_club_idx").on(t.clubId)],
